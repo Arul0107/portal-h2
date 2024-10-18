@@ -228,6 +228,17 @@ app.post('/assets/register', async (req, res) => {
   const { asset_id, name, type, condition, employee_id, employee_name, department, status } = req.body;
 
   try {
+    // Validate that asset_id is not null
+    if (!asset_id) {
+      return res.status(400).json({ message: 'Asset ID is required' });
+    }
+
+    // Check for duplicate asset_id before proceeding
+    const existingAsset = await Asset.findOne({ asset_id });
+    if (existingAsset) {
+      return res.status(400).json({ message: 'Asset ID already exists' });
+    }
+
     const newAsset = new Asset({
       asset_id,
       name,
@@ -242,7 +253,7 @@ app.post('/assets/register', async (req, res) => {
     await newAsset.save();
     res.status(201).json({ message: 'Asset registered successfully', asset: newAsset });
   } catch (error) {
-    console.error('Error during asset registration:', error.stack);
+    console.error('Error during asset registration:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -253,7 +264,7 @@ app.get('/assets', async (req, res) => {
     const assets = await Asset.find();
     res.status(200).json(assets);
   } catch (error) {
-    console.error('Error fetching assets:', error.stack);
+    console.error('Error fetching assets:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -279,7 +290,7 @@ app.put('/assets/:id', async (req, res) => {
     await asset.save();
     res.status(200).json({ message: 'Asset updated successfully', asset });
   } catch (error) {
-    console.error('Error updating asset:', error.stack);
+    console.error('Error updating asset:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -293,7 +304,7 @@ app.delete('/assets/:id', async (req, res) => {
     }
     res.status(200).json({ message: 'Asset deleted successfully' });
   } catch (error) {
-    console.error('Error deleting asset:', error.stack);
+    console.error('Error deleting asset:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

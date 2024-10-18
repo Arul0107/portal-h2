@@ -1,12 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Popconfirm, message, Tag, Row, Col, Divider, Typography, Layout } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import './AssetManagement.css'; // Import responsive styles
-import Sidebar from '../../components/Sidebar';
-import axios from 'axios'; // Import axios for API calls
+import React, { useState, useEffect } from "react";
+import {
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Popconfirm,
+  message,
+  Tag,
+  Row,
+  Col,
+  Divider,
+  Typography,
+  Layout,
+} from "antd";
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import "./AssetManagement.css"; // Import responsive styles
+import Sidebar from "../../components/Sidebar";
+import axios from "axios"; // Import axios for API calls
 
 const { Option } = Select;
-const { Header } = Layout;
+const { Header, Content } = Layout;
+const { Title } = Typography;
 
 const AssetManagement = () => {
   const [assets, setAssets] = useState([]); // Store asset details
@@ -27,23 +47,23 @@ const AssetManagement = () => {
   // Fetch employees from the server
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/employees'); // Adjust to your actual API URL
+      const response = await axios.get("http://localhost:5000/employees"); // Adjust to your actual API URL
       setEmployees(response.data);
     } catch (error) {
-      console.error('Error fetching employees:', error);
-      message.error('Failed to fetch employees');
+      console.error("Error fetching employees:", error);
+      message.error("Failed to fetch employees");
     }
   };
 
   // Fetch assets from the server
   const fetchAssets = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/assets'); // Adjust to your actual API URL
+      const response = await axios.get("http://localhost:5000/assets"); // Adjust to your actual API URL
       setAssets(response.data);
       setFilteredAssets(response.data); // Initialize filtered assets
     } catch (error) {
-      console.error('Error fetching assets:', error);
-      message.error('Failed to fetch assets');
+      console.error("Error fetching assets:", error);
+      message.error("Failed to fetch assets");
     }
   };
 
@@ -56,29 +76,41 @@ const AssetManagement = () => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      const employee = employees.find(emp => emp.employee_id === values.employee_id); // Get employee by ID
+
+      // Ensure asset_id is not null or undefined
+      if (!values.asset_id) {
+        message.error("Asset ID is required");
+        return;
+      }
+
+      const employee = employees.find(
+        (emp) => emp.employee_id === values.employee_id
+      ); // Use employee_id from the list
 
       const newAsset = {
         ...values,
-        status: 'received', // Default status to 'received'
-        employee_name: employee?.name, // Fetch employee name based on ID
+        status: "received", // Default status to 'received'
+        employee_name: employee ? employee.name : "", // Fetch employee name based on selected employee_id
       };
 
       if (editingAsset) {
         // If editing, update the existing asset
-        await axios.put(`http://localhost:5000/assets/${editingAsset._id}`, newAsset); // Adjust URL
-        message.success('Asset updated successfully!');
+        await axios.put(
+          `http://localhost:5000/assets/${editingAsset._id}`,
+          newAsset
+        ); // Adjust URL
+        message.success("Asset updated successfully!");
       } else {
         // If adding new asset, send a POST request to the backend
-        await axios.post('http://localhost:5000/assets/register', newAsset); // Adjust URL
-        message.success('Asset added successfully!');
+        await axios.post("http://localhost:5000/assets/register", newAsset); // Adjust URL
+        message.success("Asset added successfully!");
       }
 
       fetchAssets(); // Refresh the assets list
       setIsModalVisible(false); // Close the modal
     } catch (error) {
-      console.error('Error saving asset:', error);
-      message.error('Failed to save asset');
+      console.error("Error saving asset:", error);
+      message.error("Failed to save asset");
     }
   };
 
@@ -95,81 +127,117 @@ const AssetManagement = () => {
   const handleDelete = async (key) => {
     try {
       await axios.delete(`http://localhost:5000/assets/${key}`); // Adjust URL
-      message.success('Asset deleted successfully!');
+      message.success("Asset deleted successfully!");
       fetchAssets(); // Refresh the asset list
     } catch (error) {
-      console.error('Error deleting asset:', error);
-      message.error('Failed to delete asset');
+      console.error("Error deleting asset:", error);
+      message.error("Failed to delete asset");
+    }
+  };
+
+  const handleStatusChange = async (key, status) => {
+    const updatedStatus = status === "received" ? "notReturned" : "received";
+    try {
+      await axios.put(`http://localhost:5000/assets/${key}`, {
+        status: updatedStatus,
+      }); // Adjust URL
+      message.success(`Asset status updated to ${updatedStatus}`);
+      fetchAssets(); // Refresh the assets list
+    } catch (error) {
+      console.error("Error updating asset status:", error);
+      message.error("Failed to update asset status");
     }
   };
 
   const handleSearch = (e) => {
     const value = e.target.value.toLowerCase();
-    const filtered = assets.filter(item =>
-      item.name.toLowerCase().includes(value) ||
-      item.employee_name.toLowerCase().includes(value) ||
-      item.department.toLowerCase().includes(value)
+    const filtered = assets.filter(
+      (item) =>
+        item.name.toLowerCase().includes(value) ||
+        item.employee_name.toLowerCase().includes(value) ||
+        item.department.toLowerCase().includes(value)
     );
     setFilteredAssets(filtered);
   };
 
   const columns = [
     {
-      title: 'Employee ID',
-      dataIndex: 'employee_id',
-      key: 'employee_id',
+      title: "Employee ID",
+      dataIndex: "employee_id",
+      key: "employee_id",
     },
     {
-      title: 'Employee Name',
-      dataIndex: 'employee_name',
-      key: 'employee_name',
+      title: "Employee Name",
+      dataIndex: "employee_name",
+      key: "employee_name",
     },
     {
-      title: 'Asset ID',
-      dataIndex: 'asset_id',
-      key: 'asset_id',
+      title: "Asset ID",
+      dataIndex: "asset_id",
+      key: "asset_id",
     },
     {
-      title: 'Asset Name',
-      dataIndex: 'name',
-      key: 'name',
+      title: "Asset Name",
+      dataIndex: "name",
+      key: "name",
     },
     {
-      title: 'Types',
-      dataIndex: 'type',
-      key: 'type',
-      render: (types) => types ? types.map((type, index) => <Tag key={index}>{type}</Tag>) : 'No Type Assigned',
+      title: "Types",
+      dataIndex: "type",
+      key: "type",
+      render: (types) =>
+        types
+          ? types.map((type, index) => <Tag key={index}>{type}</Tag>)
+          : "No Type Assigned",
     },
     {
-      title: 'Condition',
-      dataIndex: 'condition',
-      key: 'condition',
+      title: "Condition",
+      dataIndex: "condition",
+      key: "condition",
     },
     {
-      title: 'Department',
-      dataIndex: 'department',
-      key: 'department',
+      title: "Department",
+      dataIndex: "department",
+      key: "department",
     },
     {
-      title: 'Status',
-      key: 'status',
-      render: (record) => (
-        record.status === 'received' ? (
-          <Tag color="green" icon={<CheckCircleOutlined />}>Received</Tag>
+      title: "Status",
+      key: "status",
+      render: (record) =>
+        record.status === "received" ? (
+          <Tag color="green" icon={<CheckCircleOutlined />}>
+            Received
+          </Tag>
         ) : (
-          <Tag color="red" icon={<CloseCircleOutlined />}>Not Returned</Tag>
-        )
-      ),
+          <Tag color="red" icon={<CloseCircleOutlined />}>
+            Not Returned
+          </Tag>
+        ),
     },
     {
-      title: 'Action',
-      key: 'action',
+      title: "Action",
+      key: "action",
       render: (record) => (
         <span>
-          <Button type="link" onClick={() => handleEdit(record)}>Edit</Button>
-          <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record._id)}>
-            <Button type="link" danger>Delete</Button>
+          <Button type="link" onClick={() => handleEdit(record)}>
+            Edit
+          </Button>
+          <Popconfirm
+            title="Are you sure?"
+            onConfirm={() => handleDelete(record._id)}
+          >
+            <Button type="link" danger>
+              Delete
+            </Button>
           </Popconfirm>
+          <Button
+            type="link"
+            onClick={() => handleStatusChange(record._id, record.status)}
+          >
+            {record.status === "received"
+              ? "Mark as Not Returned"
+              : "Mark as Received"}
+          </Button>
         </span>
       ),
     },
@@ -184,10 +252,10 @@ const AssetManagement = () => {
       <Divider />
 
       <Input
-        className='search-bar'
+        className="search-bar"
         placeholder="Search by Asset Name, Employee Name, or Department"
         onChange={handleSearch}
-        style={{ marginBottom: '16px' }}
+        style={{ marginBottom: "16px", marginRight: "10px" }}
       />
 
       <Button type="primary" icon={<PlusOutlined />} onClick={showAddModal}>
@@ -202,7 +270,7 @@ const AssetManagement = () => {
       />
 
       <Modal
-        title={editingAsset ? 'Edit Asset' : 'Add Asset'}
+        title={editingAsset ? "Edit Asset" : "Add Asset"}
         visible={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
@@ -211,23 +279,28 @@ const AssetManagement = () => {
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col xs={24} md={12}>
-            <Form.Item
-  name="employee_id"
-  label="Employee ID"
-  rules={[{ required: true, message: 'Please select an employee' }]} // Adding validation message
->
-  <Select placeholder="Select Employee ID">
-    {employees.map(emp => (
-      <Option key={emp._id} value={emp._id}>  {/* Use _id (ObjectId) instead of employee_id */}
-        {emp.employee_id} - {emp.name}  {/* Displaying custom employee_id and name */}
-      </Option>
-    ))}
-  </Select>
-</Form.Item>
-
+              <Form.Item
+                name="employee_id"
+                label="Employee ID"
+                rules={[{ required: true }]}
+              >
+                <Select placeholder="Select Employee ID">
+                  {employees.map((emp) => (
+                    <Option key={emp.employee_id} value={emp.employee_id}>
+                      {" "}
+                      {/* Use employee_id */}
+                      {emp.employee_id} - {emp.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item name="asset_id" label="Asset ID" rules={[{ required: true }]}>
+              <Form.Item
+                name="asset_id"
+                label="Asset ID"
+                rules={[{ required: true, message: "Please enter Asset ID" }]} // Ensure Asset ID is required
+              >
                 <Input placeholder="Enter Asset ID" />
               </Form.Item>
             </Col>
