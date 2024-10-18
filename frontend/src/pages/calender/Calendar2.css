@@ -1,0 +1,19 @@
+.calendar-container {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 10px;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.5em;
+}
+
+.fc-event {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+}
+
+.fc-daygrid-event-dot {
+  background-color: #007bff;
+}

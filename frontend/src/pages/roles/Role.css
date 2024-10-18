@@ -1,0 +1,67 @@
+.add-user-page {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+}
+
+.role-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+}
+
+.left-side, .right-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left-side {
+  background-color: #f0f2f5; /* You can change the background color */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.right-side {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fff;
+  padding: 20px;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+.image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.role-image {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .role-container {
+    flex-direction: column;
+    padding: 10px;
+  }
+
+  .left-side, .right-side {
+    width: 100%;
+    padding: 0;
+  }
+
+  .form-container {
+    max-width: 100%;
+  }
+}
