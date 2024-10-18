@@ -9,7 +9,7 @@ const path = require('path');
 const User = require('./models/User');
 const Employee = require('./models/Employee');
 const Document = require('./models/Document');
-
+const Asset = require('./models/Asset'); 
 const app = express();
 
 // Middleware
@@ -223,6 +223,81 @@ app.delete('/employees/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+app.post('/assets/register', async (req, res) => {
+  const { asset_id, name, type, condition, employee_id, employee_name, department, status } = req.body;
+
+  try {
+    const newAsset = new Asset({
+      asset_id,
+      name,
+      type,
+      condition,
+      employee_id,
+      employee_name,
+      department,
+      status,
+    });
+
+    await newAsset.save();
+    res.status(201).json({ message: 'Asset registered successfully', asset: newAsset });
+  } catch (error) {
+    console.error('Error during asset registration:', error.stack);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get all assets
+app.get('/assets', async (req, res) => {
+  try {
+    const assets = await Asset.find();
+    res.status(200).json(assets);
+  } catch (error) {
+    console.error('Error fetching assets:', error.stack);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update an asset
+app.put('/assets/:id', async (req, res) => {
+  const { name, type, condition, employee_id, employee_name, department, status } = req.body;
+
+  try {
+    const asset = await Asset.findById(req.params.id);
+    if (!asset) {
+      return res.status(404).json({ message: 'Asset not found' });
+    }
+
+    asset.name = name || asset.name;
+    asset.type = type || asset.type;
+    asset.condition = condition || asset.condition;
+    asset.employee_id = employee_id || asset.employee_id;
+    asset.employee_name = employee_name || asset.employee_name;
+    asset.department = department || asset.department;
+    asset.status = status || asset.status;
+
+    await asset.save();
+    res.status(200).json({ message: 'Asset updated successfully', asset });
+  } catch (error) {
+    console.error('Error updating asset:', error.stack);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Delete an asset
+app.delete('/assets/:id', async (req, res) => {
+  try {
+    const asset = await Asset.findByIdAndDelete(req.params.id);
+    if (!asset) {
+      return res.status(404).json({ message: 'Asset not found' });
+    }
+    res.status(200).json({ message: 'Asset deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting asset:', error.stack);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 
 // Start the server
 const PORT = process.env.PORT || 5000;

@@ -19,15 +19,8 @@ const Login = () => {
       const response = await axios.post('http://localhost:5000/login', loginData);
       const user = response.data.user;
 
-      // Validate user role
-      if (user.role !== 'admin' && user.role !== 'hr') {
-        toast.error('Access denied. Only admin and HR users can access the dashboard.');
-        return;
-      }
-
       // Store user data in localStorage
       localStorage.setItem('loggedInUser', JSON.stringify(user));
-      toast.success(`Welcome, ${user.username}!`);
       navigate('/dashboard', { state: { user } });
     } catch (error) {
       if (error.response && error.response.status === 400) {
@@ -83,4 +76,3 @@ const Login = () => {
 };
 
 export default Login;
-  

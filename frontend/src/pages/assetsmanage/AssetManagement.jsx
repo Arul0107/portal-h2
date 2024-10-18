@@ -1,37 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Popconfirm, message, Tag, Row, Col, Divider, Typography, Layout } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import './AssetManagement.css'; // Import responsive styles
 import Sidebar from '../../components/Sidebar';
+import axios from 'axios'; // Import axios for API calls
 
 const { Option } = Select;
-const { Header, Content } = Layout;
-const { Title } = Typography;
-
-const initialDepartments = {
-  Development: {
-    TeamA: [
-      { id: 1, name: "John Doe", role: "leader" },
-      { id: 2, name: "Jane Smith", role: "member" },
-    ],
-    TeamB: [
-      { id: 1, name: "Alice Green", role: "leader" },
-      { id: 2, name: "Bob Brown", role: "member" },
-    ],
-  },
-  Marketing: {
-    TeamC: [
-      { id: 1, name: "Eve White", role: "leader" },
-      { id: 2, name: "Charlie Black", role: "member" },
-    ],
-  },
-  HR: {
-    TeamD: [
-      { id: 1, name: "Mike Blue", role: "leader" },
-      { id: 2, name: "Sara Yellow", role: "member" },
-    ],
-  },
-};
+const { Header } = Layout;
 
 const AssetManagement = () => {
   const [assets, setAssets] = useState([]); // Store asset details
@@ -40,42 +15,71 @@ const AssetManagement = () => {
   const [editingAsset, setEditingAsset] = useState(null);
   const [form] = Form.useForm();
 
-  // State to manage department and team selection
-  const [selectedDepartment, setSelectedDepartment] = useState(null);
-  const [selectedTeam, setSelectedTeam] = useState(null);
-  const [members, setMembers] = useState([]);
+  // State to manage employees
+  const [employees, setEmployees] = useState([]);
+
+  // Fetch employees and assets on page load
+  useEffect(() => {
+    fetchEmployees();
+    fetchAssets(); // Fetch assets from the server
+  }, []);
+
+  // Fetch employees from the server
+  const fetchEmployees = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/employees'); // Adjust to your actual API URL
+      setEmployees(response.data);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      message.error('Failed to fetch employees');
+    }
+  };
+
+  // Fetch assets from the server
+  const fetchAssets = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/assets'); // Adjust to your actual API URL
+      setAssets(response.data);
+      setFilteredAssets(response.data); // Initialize filtered assets
+    } catch (error) {
+      console.error('Error fetching assets:', error);
+      message.error('Failed to fetch assets');
+    }
+  };
 
   const showAddModal = () => {
     setIsModalVisible(true);
     form.resetFields();
     setEditingAsset(null);
-    setSelectedDepartment(null);
-    setSelectedTeam(null);
-    setMembers([]);
   };
 
-  const handleOk = () => {
-    form.validateFields()
-      .then((values) => {
-        if (editingAsset !== null) {
-          setAssets((prev) => prev.map((asset) => (asset.key === editingAsset.key ? values : asset)));
-          setFilteredAssets((prev) => prev.map((asset) => (asset.key === editingAsset.key ? values : asset)));
-          message.success('Asset updated successfully!');
-        } else {
-          const newAsset = {
-            ...values,
-            key: assets.length + 1,
-            status: 'received', // Default status to 'received'
-          };
-          setAssets((prev) => [...prev, newAsset]);
-          setFilteredAssets((prev) => [...prev, newAsset]);
-          message.success('Asset added successfully!');
-        }
-        setIsModalVisible(false);
-      })
-      .catch((info) => {
-        console.log('Validation Failed:', info);
-      });
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      const employee = employees.find(emp => emp.employee_id === values.employee_id); // Get employee by ID
+
+      const newAsset = {
+        ...values,
+        status: 'received', // Default status to 'received'
+        employee_name: employee?.name, // Fetch employee name based on ID
+      };
+
+      if (editingAsset) {
+        // If editing, update the existing asset
+        await axios.put(`http://localhost:5000/assets/${editingAsset._id}`, newAsset); // Adjust URL
+        message.success('Asset updated successfully!');
+      } else {
+        // If adding new asset, send a POST request to the backend
+        await axios.post('http://localhost:5000/assets/register', newAsset); // Adjust URL
+        message.success('Asset added successfully!');
+      }
+
+      fetchAssets(); // Refresh the assets list
+      setIsModalVisible(false); // Close the modal
+    } catch (error) {
+      console.error('Error saving asset:', error);
+      message.error('Failed to save asset');
+    }
   };
 
   const handleCancel = () => {
@@ -84,50 +88,47 @@ const AssetManagement = () => {
 
   const handleEdit = (record) => {
     setIsModalVisible(true);
-    form.setFieldsValue(record);
+    form.setFieldsValue(record); // Populate form with asset data
     setEditingAsset(record);
-    setSelectedDepartment(record.department);
-    setSelectedTeam(record.team);
-    setMembers(initialDepartments[record.department][record.team]);
   };
 
-  const handleDelete = (key) => {
-    setAssets((prev) => prev.filter((asset) => asset.key !== key));
-    setFilteredAssets((prev) => prev.filter((asset) => asset.key !== key));
-    message.success('Asset deleted successfully!');
-  };
-
-  const handleStatusChange = (key, status) => {
-    setAssets((prev) => prev.map((asset) => (asset.key === key ? { ...asset, status } : asset)));
-    setFilteredAssets((prev) => prev.map((asset) => (asset.key === key ? { ...asset, status } : asset)));
+  const handleDelete = async (key) => {
+    try {
+      await axios.delete(`http://localhost:5000/assets/${key}`); // Adjust URL
+      message.success('Asset deleted successfully!');
+      fetchAssets(); // Refresh the asset list
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      message.error('Failed to delete asset');
+    }
   };
 
   const handleSearch = (e) => {
     const value = e.target.value.toLowerCase();
     const filtered = assets.filter(item =>
       item.name.toLowerCase().includes(value) ||
-      item.employeeName.toLowerCase().includes(value) ||
+      item.employee_name.toLowerCase().includes(value) ||
       item.department.toLowerCase().includes(value)
     );
     setFilteredAssets(filtered);
   };
 
-  // Handle department change to update teams
-  const handleDepartmentChange = (value) => {
-    setSelectedDepartment(value);
-    setSelectedTeam(null);
-    setMembers([]);
-    form.setFieldsValue({ team: undefined, employeeName: undefined }); // Reset team and employee name
-  };
-
-  // Handle team change to update members
-  const handleTeamChange = (value) => {
-    setSelectedTeam(value);
-    setMembers(initialDepartments[selectedDepartment][value]);
-    form.setFieldsValue({ employeeName: undefined }); // Reset employee name
-  };
-
   const columns = [
+    {
+      title: 'Employee ID',
+      dataIndex: 'employee_id',
+      key: 'employee_id',
+    },
+    {
+      title: 'Employee Name',
+      dataIndex: 'employee_name',
+      key: 'employee_name',
+    },
+    {
+      title: 'Asset ID',
+      dataIndex: 'asset_id',
+      key: 'asset_id',
+    },
     {
       title: 'Asset Name',
       dataIndex: 'name',
@@ -137,7 +138,7 @@ const AssetManagement = () => {
       title: 'Types',
       dataIndex: 'type',
       key: 'type',
-      render: (types) => types.map((type, index) => <Tag key={index}>{type}</Tag>), // Show multiple types as tags
+      render: (types) => types ? types.map((type, index) => <Tag key={index}>{type}</Tag>) : 'No Type Assigned',
     },
     {
       title: 'Condition',
@@ -145,24 +146,9 @@ const AssetManagement = () => {
       key: 'condition',
     },
     {
-      title: 'Employee Name',
-      dataIndex: 'employeeName',
-      key: 'employeeName',
-    },
-    {
       title: 'Department',
       dataIndex: 'department',
       key: 'department',
-    },
-    {
-      title: 'Team',
-      dataIndex: 'team',
-      key: 'team',
-    },
-    {
-      title: 'Project',
-      dataIndex: 'project',
-      key: 'project',
     },
     {
       title: 'Status',
@@ -181,15 +167,9 @@ const AssetManagement = () => {
       render: (record) => (
         <span>
           <Button type="link" onClick={() => handleEdit(record)}>Edit</Button>
-          <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record.key)}>
+          <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record._id)}>
             <Button type="link" danger>Delete</Button>
           </Popconfirm>
-          <Button
-            type="link"
-            onClick={() => handleStatusChange(record.key, record.status === 'received' ? 'notReturned' : 'received')}
-          >
-            {record.status === 'received' ? 'Mark as Not Returned' : 'Mark as Received'}
-          </Button>
         </span>
       ),
     },
@@ -203,11 +183,11 @@ const AssetManagement = () => {
       </Header>
       <Divider />
 
-      <Input  
+      <Input
         className='search-bar'
         placeholder="Search by Asset Name, Employee Name, or Department"
         onChange={handleSearch}
-        style={{ marginBottom: '16px', marginRight:"10px"}}
+        style={{ marginBottom: '16px' }}
       />
 
       <Button type="primary" icon={<PlusOutlined />} onClick={showAddModal}>
@@ -215,8 +195,8 @@ const AssetManagement = () => {
       </Button>
       <Table
         columns={columns}
-        dataSource={filteredAssets}
-        rowKey="key"
+        dataSource={filteredAssets} // Ensure filteredAssets is used for rendering
+        rowKey="_id" // Use MongoDB object ID as the unique key
         style={{ marginTop: 16 }}
         scroll={{ x: 768 }} // Enable horizontal scrolling
       />
@@ -231,21 +211,35 @@ const AssetManagement = () => {
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item
-                name="name"
-                label="Asset Name"
-                rules={[{ required: true, message: 'Please enter the asset name!' }]}
-              >
+            <Form.Item
+  name="employee_id"
+  label="Employee ID"
+  rules={[{ required: true, message: 'Please select an employee' }]} // Adding validation message
+>
+  <Select placeholder="Select Employee ID">
+    {employees.map(emp => (
+      <Option key={emp._id} value={emp._id}>  {/* Use _id (ObjectId) instead of employee_id */}
+        {emp.employee_id} - {emp.name}  {/* Displaying custom employee_id and name */}
+      </Option>
+    ))}
+  </Select>
+</Form.Item>
+
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item name="asset_id" label="Asset ID" rules={[{ required: true }]}>
+                <Input placeholder="Enter Asset ID" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item name="name" label="Asset Name">
                 <Input />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item
-                name="type"
-                label="Asset Types"
-                rules={[{ required: true, message: 'Please select the asset types!' }]}
-              >
-                {/* Enable multiple selection for asset types */}
+              <Form.Item name="type" label="Asset Types">
                 <Select mode="multiple" placeholder="Select Asset Types">
                   <Option value="Laptop">Laptop</Option>
                   <Option value="Monitor">Monitor</Option>
@@ -258,11 +252,7 @@ const AssetManagement = () => {
           </Row>
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item
-                name="condition"
-                label="Asset Condition"
-                rules={[{ required: true, message: 'Please select the asset condition!' }]}
-              >
+              <Form.Item name="condition" label="Asset Condition">
                 <Select>
                   <Option value="New">New</Option>
                   <Option value="Used">Used</Option>
@@ -270,54 +260,7 @@ const AssetManagement = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item
-                name="department"
-                label="Department"
-                rules={[{ required: true, message: 'Please select the department!' }]}
-              >
-                <Select onChange={handleDepartmentChange} placeholder="Select Department">
-                  {Object.keys(initialDepartments).map(department => (
-                    <Option key={department} value={department}>{department}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="team"
-                label="Team"
-                rules={[{ required: true, message: 'Please select the team!' }]}
-              >
-                <Select onChange={handleTeamChange} disabled={!selectedDepartment} placeholder="Select Team">
-                  {selectedDepartment && Object.keys(initialDepartments[selectedDepartment]).map(team => (
-                    <Option key={team} value={team}>{team}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="employeeName"
-                label="Employee Name"
-                rules={[{ required: true, message: 'Please select the employee!' }]}
-              >
-                <Select disabled={!selectedTeam} placeholder="Select Employee">
-                  {selectedTeam && members.map(member => (
-                    <Option key={member.id} value={member.name}>{member.name}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="project"
-                label="Project"
-                rules={[{ required: true, message: 'Please enter the project name!' }]}
-              >
+              <Form.Item name="department" label="Department">
                 <Input />
               </Form.Item>
             </Col>
