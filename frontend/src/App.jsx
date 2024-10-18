@@ -28,15 +28,15 @@ const App = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected Routes */}
-        <Route path="/dashboard" element={<PrivateRoute element={Dashboard} allowedRoles={['admin', 'user']} />} />
-        <Route path="/calendar" element={<PrivateRoute element={Calendar} allowedRoles={['admin', 'user']} />} />
-        <Route path="/document" element={<PrivateRoute element={DocumentManagement} allowedRoles={['admin']} />} />
-        <Route path="/leave" element={<PrivateRoute element={LeaveApplication} allowedRoles={['user']} />} />
-        <Route path="/assets" element={<PrivateRoute element={AssetManagement} allowedRoles={['admin']} />} />
-        <Route path="/salary" element={<PrivateRoute element={SalaryManagement} allowedRoles={['admin']} />} />
-        <Route path="/team" element={<PrivateRoute element={TeamManagement} allowedRoles={['admin']} />} />
-        <Route path="/role" element={<PrivateRoute element={Role} allowedRoles={['admin']} />} />
-        <Route path="/users" element={<PrivateRoute element={UserTable} allowedRoles={['admin']} />} />
+        <Route path="/dashboard" element={<PrivateRoute element={Dashboard} allowedRoles={['admin', 'user',"employee"]} />} />
+        <Route path="/calendar" element={<PrivateRoute element={Calendar} allowedRoles={['admin', 'user',"employee"]} />} />
+        <Route path="/document" element={<PrivateRoute element={DocumentManagement} allowedRoles={['admin',"employee"]} />} />
+        <Route path="/leave" element={<PrivateRoute element={LeaveApplication} allowedRoles={['admin','user',"employee"]} />} />
+        <Route path="/assets" element={<PrivateRoute element={AssetManagement} allowedRoles={['admin',"employee"]} />} />
+        <Route path="/salary" element={<PrivateRoute element={SalaryManagement} allowedRoles={['admin',"employee"]} />} />
+        <Route path="/team" element={<PrivateRoute element={TeamManagement} allowedRoles={['admin',"employee"]} />} />
+        <Route path="/role" element={<PrivateRoute element={Role} allowedRoles={['admin',"employee"]} />} />
+        <Route path="/users" element={<PrivateRoute element={UserTable} allowedRoles={['admin',"employee"]} />} />
         
         {/* Unauthorized route */}
         <Route path="/unauthorized" element={<h1>Unauthorized Access</h1>} />
