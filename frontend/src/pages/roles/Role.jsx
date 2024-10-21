@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -25,20 +25,37 @@ const Role = () => {
 
   const navigate = useNavigate();
 
+  // Fetch latest employee ID on component load
+  useEffect(() => {
+    const fetchEmployeeID = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/latest-employee-id');
+        const latestID = response.data.latestEmployeeID;
+        const newIDNumber = (parseInt(latestID.slice(7)) + 1).toString().padStart(2, '0');
+        const newEmployeeID = `dotsemp${newIDNumber}`;
+        setUserData((prevData) => ({ ...prevData, employee_id: newEmployeeID }));
+      } catch (error) {
+        toast.error('Failed to fetch the latest Employee ID.');
+        console.error('Error fetching employee ID:', error);
+      }
+    };
+
+    fetchEmployeeID();
+  }, []);
+
   const handleChange = (e) => {
     setUserData({ ...userData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async () => {
     const password = 'dotsito123'; // Static password, change if needed
     try {
-      // Send a request to the backend to register the employee and user
       const response = await axios.post('http://localhost:5000/register', { ...userData, password });
       toast.success(`Employee registered successfully! Password: ${password}`);
       setTimeout(() => navigate('/role'), 2000);
     } catch (error) {
       toast.error('Registration failed. Please try again.');
-      console.error(error); // Log the error for debugging
+      console.error('Error during registration:', error);
     }
   };
 
@@ -54,8 +71,8 @@ const Role = () => {
           <div className="form-container">
             <Title level={2}>Create New Employee</Title>
             <Form layout="vertical" onFinish={handleSubmit}>
-              <Form.Item label="Employee ID" name="employee_id" rules={[{ required: true, message: 'Please input your employee ID!' }]}>
-                <Input placeholder="Enter Employee ID" value={userData.employee_id} onChange={handleChange} name="employee_id" />
+              <Form.Item label="Employee ID" name="employee_id">
+                <Input value={userData.employee_id} disabled /> {/* Disable manual edit */}
               </Form.Item>
               <Form.Item label="Name" name="name" rules={[{ required: true, message: 'Please input your name!' }]}>
                 <Input placeholder="Enter name" value={userData.name} onChange={handleChange} name="name" />

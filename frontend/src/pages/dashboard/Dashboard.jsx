@@ -13,23 +13,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     const loggedInUser = localStorage.getItem('loggedInUser');
-
+    
     if (loggedInUser) {
-      // If a user is found, set user state
-      setUser(JSON.parse(loggedInUser));
+      // Parse the user data and set the state
+      const parsedUser = JSON.parse(loggedInUser);
+      setUser(parsedUser);
+      console.log('User data:', parsedUser); // Check if employee_id is available
     } else {
       // If no user is found, show a toast message and navigate to login
       toast.error('Please log in to continue');
       navigate('/login');
     }
   }, [navigate]);
-
-  // Function to update user data if needed
-  const updateUserData = (newData) => {
-    const updatedUser = { ...user, ...newData };
-    setUser(updatedUser);
-    localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
-  };
 
   return (
     <div className="main">
@@ -46,7 +41,7 @@ const Dashboard = () => {
             <p><strong>Email:</strong> {user.email || 'Not Available'}</p>
             <p><strong>Username:</strong> {user.name || 'Not Available'}</p>
             <p><strong>Role:</strong> {user.role || 'Not Available'}</p>
-            <p><strong>Employee Id:</strong> {user.employee_id || 'Not Available'}</p>
+            <p><strong>Employee Id:</strong> {user.employee_id || 'Not Available'}</p> {/* Employee ID Display */}
           </div>
   
           {user.role === 'admin' ? (
@@ -88,7 +83,6 @@ const Dashboard = () => {
       </div>
     </div>
   );
-  
 };
 
 export default Dashboard;
