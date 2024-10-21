@@ -19,8 +19,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve u
 
 // MongoDB connection
 mongoose.connect('mongodb+srv://arulupsc:7ht4hONhEWXuOPKt@cluster1.izzpz.mongodb.net/myDatabase?retryWrites=true&w=majority', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
 })
   .then(() => console.log('MongoDB Atlas connected'))
   .catch(err => console.log('MongoDB connection error:', err));
@@ -36,6 +37,31 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+// Generate Employee ID
+const generateEmployeeID = async () => {
+  const lastEmployee = await Employee.findOne().sort({ employee_id: -1 });
+  let newEmployeeID = 'dotsemp01'; // Default for the first employee
+
+  if (lastEmployee) {
+    const lastIDNumber = parseInt(lastEmployee.employee_id.slice(7)); // Get numeric part from ID
+    const nextIDNumber = (lastIDNumber + 1).toString().padStart(2, '0');
+    newEmployeeID = `dotsemp${nextIDNumber}`;
+  }
+
+  return newEmployeeID;
+};
+
+// Get Latest Employee ID
+app.get('/latest-employee-id', async (req, res) => {
+  try {
+    const lastEmployee = await Employee.findOne().sort({ employee_id: -1 });
+    const latestEmployeeID = lastEmployee ? lastEmployee.employee_id : 'dotsemp00';
+    res.status(200).json({ latestEmployeeID });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch latest employee ID' });
+  }
+});
 
 // Employee Registration
 app.post('/register', async (req, res) => {
@@ -223,40 +249,41 @@ app.delete('/employees/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
-
+// Asset Registration Route
+// Asset Registration Route
 app.post('/assets/register', async (req, res) => {
-  const { asset_id, name, type, condition, employee_id, employee_name, department, status } = req.body;
+  const { name, type, condition, employee_id, department, status } = req.body;
+
+  // Ensure the asset_id is generated if not provided
+  const asset_id = req.body.asset_id || `AST${Date.now().toString().slice(-4)}`;
 
   try {
-    // Validate that asset_id is not null
-    if (!asset_id) {
-      return res.status(400).json({ message: 'Asset ID is required' });
+    // Check if employee exists
+    const employee = await Employee.findOne({ employee_id });
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
     }
 
-    // Check for duplicate asset_id before proceeding
-    const existingAsset = await Asset.findOne({ asset_id });
-    if (existingAsset) {
-      return res.status(400).json({ message: 'Asset ID already exists' });
-    }
-
+    // Create new asset
     const newAsset = new Asset({
-      asset_id,
+      asset_id, // Automatically generated or passed from the frontend
       name,
       type,
       condition,
       employee_id,
-      employee_name,
+      employee_name: employee.name, // Assigning employee name from Employee model
       department,
-      status,
+      status: status || 'received',
     });
 
-    await newAsset.save();
+    await newAsset.save(); // Save to MongoDB
     res.status(201).json({ message: 'Asset registered successfully', asset: newAsset });
   } catch (error) {
     console.error('Error during asset registration:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
 
 // Get all assets
 app.get('/assets', async (req, res) => {
@@ -269,24 +296,26 @@ app.get('/assets', async (req, res) => {
   }
 });
 
-// Update an asset
+// Update asset
 app.put('/assets/:id', async (req, res) => {
-  const { name, type, condition, employee_id, employee_name, department, status } = req.body;
+  const { name, type, condition, employee_id, department, status } = req.body;
 
   try {
+    // Find asset by ID
     const asset = await Asset.findById(req.params.id);
     if (!asset) {
       return res.status(404).json({ message: 'Asset not found' });
     }
 
+    // Update fields
     asset.name = name || asset.name;
     asset.type = type || asset.type;
     asset.condition = condition || asset.condition;
     asset.employee_id = employee_id || asset.employee_id;
-    asset.employee_name = employee_name || asset.employee_name;
     asset.department = department || asset.department;
     asset.status = status || asset.status;
 
+    // Save updated asset
     await asset.save();
     res.status(200).json({ message: 'Asset updated successfully', asset });
   } catch (error) {
@@ -295,9 +324,10 @@ app.put('/assets/:id', async (req, res) => {
   }
 });
 
-// Delete an asset
+// Delete asset
 app.delete('/assets/:id', async (req, res) => {
   try {
+    // Delete asset by ID
     const asset = await Asset.findByIdAndDelete(req.params.id);
     if (!asset) {
       return res.status(404).json({ message: 'Asset not found' });
@@ -308,7 +338,6 @@ app.delete('/assets/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
-
 
 // Start the server
 const PORT = process.env.PORT || 5000;

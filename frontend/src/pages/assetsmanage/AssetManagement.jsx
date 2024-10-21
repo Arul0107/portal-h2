@@ -25,8 +25,7 @@ import Sidebar from "../../components/Sidebar";
 import axios from "axios"; // Import axios for API calls
 
 const { Option } = Select;
-const { Header, Content } = Layout;
-const { Title } = Typography;
+const { Header } = Layout;
 
 const AssetManagement = () => {
   const [assets, setAssets] = useState([]); // Store asset details
@@ -47,14 +46,15 @@ const AssetManagement = () => {
   // Fetch employees from the server
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/employees"); // Adjust to your actual API URL
+      const response = await axios.get("http://localhost:5000/employees");
       setEmployees(response.data);
+      console.log("Employees data:", response.data); // Check the data here
     } catch (error) {
       console.error("Error fetching employees:", error);
       message.error("Failed to fetch employees");
     }
   };
-
+  
   // Fetch assets from the server
   const fetchAssets = async () => {
     try {
@@ -73,46 +73,51 @@ const AssetManagement = () => {
     setEditingAsset(null);
   };
 
+  const generateAssetID = () => `AST${Date.now().toString().slice(-4)}`;  // Asset ID generator
+
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-
-      // Ensure asset_id is not null or undefined
-      if (!values.asset_id) {
-        message.error("Asset ID is required");
-        return;
+  
+      if (!values.asset_id || values.asset_id.trim() === "") {
+        values.asset_id = generateAssetID();
       }
-
+  
+      console.log("Generated Asset ID:", values.asset_id);  // Log the asset ID
+  
       const employee = employees.find(
         (emp) => emp.employee_id === values.employee_id
-      ); // Use employee_id from the list
-
+      );
+  
       const newAsset = {
-        ...values,
-        status: "received", // Default status to 'received'
-        employee_name: employee ? employee.name : "", // Fetch employee name based on selected employee_id
+        asset_id: values.asset_id,
+        name: values.name,
+        type: values.type,
+        condition: values.condition,
+        employee_id: values.employee_id,
+        employee_name: employee ? employee.name : "",
+        department: values.department,
+        status: "received",
       };
-
+  
+      console.log("Asset to be submitted:", newAsset);
+  
       if (editingAsset) {
-        // If editing, update the existing asset
-        await axios.put(
-          `http://localhost:5000/assets/${editingAsset._id}`,
-          newAsset
-        ); // Adjust URL
+        await axios.put(`http://localhost:5000/assets/${editingAsset._id}`, newAsset);
         message.success("Asset updated successfully!");
       } else {
-        // If adding new asset, send a POST request to the backend
-        await axios.post("http://localhost:5000/assets/register", newAsset); // Adjust URL
+        await axios.post("http://localhost:5000/assets/register", newAsset);
         message.success("Asset added successfully!");
       }
-
-      fetchAssets(); // Refresh the assets list
-      setIsModalVisible(false); // Close the modal
+  
+      fetchAssets();
+      setIsModalVisible(false); // Close modal
     } catch (error) {
-      console.error("Error saving asset:", error);
-      message.error("Failed to save asset");
+      console.error("Error saving asset:", error); // Log exact error
+      message.error(error.response?.data?.message || "Failed to save asset");
     }
   };
+  
 
   const handleCancel = () => {
     setIsModalVisible(false);
@@ -282,13 +287,11 @@ const AssetManagement = () => {
               <Form.Item
                 name="employee_id"
                 label="Employee ID"
-                rules={[{ required: true }]}
+                rules={[{ required: true, message: "Employee ID is required" }]}
               >
                 <Select placeholder="Select Employee ID">
                   {employees.map((emp) => (
                     <Option key={emp.employee_id} value={emp.employee_id}>
-                      {" "}
-                      {/* Use employee_id */}
                       {emp.employee_id} - {emp.name}
                     </Option>
                   ))}
@@ -299,9 +302,11 @@ const AssetManagement = () => {
               <Form.Item
                 name="asset_id"
                 label="Asset ID"
-                rules={[{ required: true, message: "Please enter Asset ID" }]} // Ensure Asset ID is required
+                rules={[
+                  { required: true, message: "Please enter a valid Asset ID" },
+                ]}
               >
-                <Input placeholder="Enter Asset ID" />
+                <Input placeholder="Enter a unique Asset ID (e.g., LPT-1001)" />
               </Form.Item>
             </Col>
           </Row>
